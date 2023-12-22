@@ -11,10 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Update system
-        run: sudo apt update; sudo apt -y dist-upgrade; snap refresh
+        uses: actions/checkout@v4
       
       - name: Install dependencies
         run: sudo apt -y install git build-essential cmake automake libtool autoconf
