@@ -34,7 +34,7 @@ jobs:
       - name: Get date
         id: get_date
         run: |
-          echo "::set-output name=date::$(date +'%d/%m/%Y')"
+          echo "::set-output name=date::$(date +'%d-%m-%Y')"
           
       - name: Create Release
         id: create_release
@@ -42,8 +42,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_date.outputs.date }} - ${{ steps.calc_hash.outputs.hash }}
-          release_name: Release ${{ steps.get_date.outputs.date }} - ${{ steps.calc_hash.outputs.hash }}
+          tag_name: ${{ steps.get_date.outputs.date }}_${{ steps.calc_hash.outputs.hash }}
+          release_name: Release ${{ steps.get_date.outputs.date }}_${{ steps.calc_hash.outputs.hash }}
           draft: false
           prerelease: false
 
