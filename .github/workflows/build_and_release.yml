@@ -1,0 +1,120 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install git build-essential cmake automake libtool autoconf
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install msys2
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake wget automake libtool autoconf
+
+      - name: Clone xmrig
+        run: git clone https://github.com/xmrig/xmrig.git
+
+      - name: Build xmrig (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir xmrig/build && cd xmrig/scripts
+          ./build_deps.sh && cd ../build
+          cmake .. -DXMRIG_DEPS=scripts/deps
+          make -j$(nproc)
+
+      - name: Build xmrig (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir xmrig/build && cd xmrig/build
+          "c:\Program Files\CMake\bin\cmake.exe" .. -G "Unix Makefiles" -DXMRIG_DEPS=c:/xmrig-deps/gcc/x64
+          make -j$(nproc)
+
+      - name: Build xmrig (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir xmrig/build && cd xmrig/scripts
+          ./build.hwloc.sh && cd ../build
+          cmake .. -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) -DHWLOC_INCLUDE_DIR=../scripts/deps/include -DHWLOC_LIBRARY=../scripts/deps/lib/libhwloc.a
+          make -j$(sysctl -n hw.logicalcpu)
+
+      - name: Calculate hash (Ubuntu)
+        if: runner.os == 'Linux'
+        id: calc_hash_linux
+        run: |
+          echo "::set-output name=hash::$(sha256sum ./xmrig/build/xmrig | cut -d ' ' -f 1)"
+
+      - name: Calculate hash (Windows)
+        if: runner.os == 'Windows'
+        id: calc_hash_windows
+        run: |
+          echo "::set-output name=hash::$(CertUtil -hashfile ./xmrig/build/xmrig SHA256 | findstr /v /c:"hash of file" /c:"CertUtil")"
+
+      - name: Calculate hash (macOS)
+        if: runner.os == 'macOS'
+        id: calc_hash_macos
+        run: |
+          echo "::set-output name=hash::$(shasum -a 256 ./xmrig/build/xmrig | cut -d ' ' -f 1)"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.calc_hash.outputs.hash }}
+          release_name: Release ${{ steps.calc_hash.outputs.hash }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset (Ubuntu)
+        if: runner.os == 'Linux'
+        id: upload-release-asset_linux 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./xmrig/build/xmrig
+          asset_name: xmrig-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset (Windows)
+        if: runner.os == 'Windows'
+        id: upload-release-asset_windows 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./xmrig/build/xmrig
+          asset_name: xmrig-windows
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset (macOS)
+        if: runner.os == 'macOS'
+        id: upload-release-asset_macos 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./xmrig/build/xmrig
+          asset_name: xmrig-macos
+          asset_content_type: application/octet-stream
