@@ -13,8 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Update system
+        run: sudo apt update; sudo apt -y dist-upgrade
+      
       - name: Install dependencies
-        run: sudo apt-get install git build-essential cmake automake libtool autoconf
+        run: sudo apt -y install git build-essential cmake automake libtool autoconf
 
       - name: Clone xmrig
         run: git clone https://github.com/xmrig/xmrig.git
@@ -25,20 +28,25 @@ jobs:
           ./build_deps.sh && cd ../build
           cmake .. -DXMRIG_DEPS=scripts/deps
           make -j$(nproc)
-
+          
       - name: Calculate hash
         id: calc_hash
         run: |
           echo "::set-output name=hash::$(sha256sum ./xmrig/build/xmrig | cut -d ' ' -f 1)"
-
+          
+      - name: Get date
+        id: get_date
+        run: |
+          echo "::set-output name=date::$(date +'%d/%m/%Y')"
+          
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.calc_hash.outputs.hash }}
-          release_name: Release ${{ steps.calc_hash.outputs.hash }}
+          tag_name: ${{ steps.get_date.outputs.date }} - ${{ steps.calc_hash.outputs.hash }}
+          release_name: Release ${{ steps.get_date.outputs.date }} - ${{ steps.calc_hash.outputs.hash }}
           draft: false
           prerelease: false
 
