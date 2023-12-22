@@ -1,0 +1,54 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: sudo apt-get install git build-essential cmake automake libtool autoconf
+
+      - name: Clone xmrig
+        run: git clone https://github.com/xmrig/xmrig.git
+
+      - name: Build xmrig
+        run: |
+          mkdir xmrig/build && cd xmrig/scripts
+          ./build_deps.sh && cd ../build
+          cmake .. -DXMRIG_DEPS=scripts/deps
+          make -j$(nproc)
+
+      - name: Calculate hash
+        id: calc_hash
+        run: |
+          echo "::set-output name=hash::$(sha256sum ./xmrig/build/xmrig | cut -d ' ' -f 1)"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.calc_hash.outputs.hash }}
+          release_name: Release ${{ steps.calc_hash.outputs.hash }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./xmrig/build/xmrig
+          asset_name: xmrig
+          asset_content_type: application/octet-stream
