@@ -6,15 +6,15 @@ on:
       - '*'
 
 jobs:
-  compile:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install dependencies
-        run: sudo apt -y install git build-essential cmake automake libtool autoconf
+        run: sudo apt-get install git build-essential cmake automake libtool autoconf
 
       - name: Clone xmrig
         run: git clone https://github.com/xmrig/xmrig.git
@@ -25,25 +25,22 @@ jobs:
           ./build_deps.sh && cd ../build
           cmake .. -DXMRIG_DEPS=scripts/deps
           make -j$(nproc)
-          
       - name: Calculate hash
         id: calc_hash
         run: |
-          echo "::set-output name=hash::$(sha256sum ./xmrig/build/xmrig | cut -d ' ' -f 1)"
-          
+          echo "hash=$(sha256sum ./xmrig/build/xmrig | cut -d ' ' -f 1)" >> $GITHUB_ENV
       - name: Get date
         id: get_date
         run: |
-          echo "::set-output name=date::$(date +'%d-%m-%Y')"
-          
+          echo "date=$(date +'%d-%m-%Y')" >> $GITHUB_ENV
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_date.outputs.date }}_${{ steps.calc_hash.outputs.hash }}
-          release_name: Release ${{ steps.get_date.outputs.date }}_${{ steps.calc_hash.outputs.hash }}
+          tag_name: ${{ env.date }}_${{ env.hash }}
+          release_name: Release ${{ env.date }}_${{ env.hash }}
           draft: false
           prerelease: false
 
