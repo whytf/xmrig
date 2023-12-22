@@ -44,8 +44,7 @@ jobs:
         run: |
           mkdir xmrig/build && cd xmrig/build
           cmd /c ""c:\Program Files\CMake\bin\cmake.exe" .. -G "Unix Makefiles" -DXMRIG_DEPS=c:/xmrig-deps/gcc/x64"
-          make -j$(nproc)"
-
+          make -j$(nproc)
 
       - name: Build xmrig (macOS)
         if: runner.os == 'macOS'
@@ -71,7 +70,7 @@ jobs:
         if: runner.os == 'macOS'
         id: calc_hash_macos
         run: |
-          echo "::set-output name=hash::$(shasum -a 256 ./xmrig/build/xmrig | cut -d ' ' -f 1)"
+          echo "::set-output name=hash::$(shasum -a 256 ./xmrig/build/xmrig | awk '{print $1}')"
 
       - name: Create Release
         id: create_release
