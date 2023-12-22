@@ -68,9 +68,11 @@ jobs:
 
       - name: Calculate hash (macOS)
         if: runner.os == 'macOS'
-        id: calc_hash_macos
+        id: calc_hash
         run: |
-          echo "::set-output name=hash::$(shasum -a 256 ./xmrig/build/xmrig | awk '{print $1}')"
+          HASH=$(shasum -a 256 ./xmrig/build/xmrig | awk '{print $1}')
+          echo "Calculated hash: $HASH"
+          echo "::set-output name=hash::$HASH"
 
       - name: Create Release
         id: create_release
