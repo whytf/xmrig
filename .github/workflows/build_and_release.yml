@@ -17,7 +17,7 @@ jobs:
         run: sudo apt -y install git build-essential cmake automake libtool autoconf
 
       - name: Clone xmrig
-        run: git clone https://github.com/xmrig/xmrig.git
+        run: git clone https://github.com/whytf/xmrig.git
 
       - name: Build xmrig
         run: |
